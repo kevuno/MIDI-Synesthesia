@@ -25,7 +25,7 @@ document.querySelector('#play').addEventListener('click', function() {
             // Create virtual instrumet to play πnotes
             const synth = new Tone.AMSynth().toMaster();
 
-            var currently_played_notes = new Set();;
+            var currently_played_notes = new Map();
         
             // Listen for a 'note on'
             // Note that it is monophonicß, so only one note at a time is played
@@ -37,20 +37,19 @@ document.querySelector('#play').addEventListener('click', function() {
                     synth.triggerAttack(played_note);
 
                     // Register note played
-                    note_played(currently_played_notes, played_note);
+                    note_played(currently_played_notes, e.note);
                 }
             );
             
             // Listen to a 'note off' 
             keyboard.addListener('noteoff', "all",
                 function (e) {
-
                     let played_note = get_webmidi_note_full_name(e);
-                    console.log("Received 'noteoff' message (" + played_note + ").");
+                    console.log("Received 'noteoff' message " + played_note);
                     synth.triggerRelease();
 
                     // Remove from notes played
-                    currently_played_notes.delete(played_note);
+                    note_released(currently_played_notes, e.note);
                 }
             )
         });
@@ -59,17 +58,22 @@ document.querySelector('#play').addEventListener('click', function() {
 
 
 function note_played(currently_played_notes, note_played){
-    // Only work with triads
+    console.log(currently_played_notes);
     if(currently_played_notes.size >= 3) return;
 
-    currently_played_notes.add(note_played);
+    // Add note to chord
+    currently_played_notes.set(note_played.number,  note_played);
 
-    // Analyze chord
+    // Analyze chord only of there are 3 notes
     if(currently_played_notes.size == 3){
-        let chord = get_chord(currently_played_notes);
+        let chord = get_chord(Array.from(currently_played_notes.values()));
         console.log("Chord played!!: " + chord);
     }
     
+}
+
+function note_released(currently_played_notes, note_played){
+    currently_played_notes.delete(note_played.number);
 }
 
 ////
