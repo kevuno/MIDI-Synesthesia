@@ -6,10 +6,21 @@
     <title>MIDI Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="https://cdn.jsdelivr.net/npm/webmidi"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
     
 </head>
 <body>
-    <button id="play"> Press to Play! </button>
+    <h1> Press in the button bellow to initialize the MIDI interfce.</h1>
+    <h3><button id="play"> Press to Play! </button></h3>
+
+    <div id="content" style="display: none;">
+        <h2> Everything should be ready now! Play with your MIDI input! </h2>
+        <hr>
+        <h3> Latest chord played: <span id="chord"> </span></h3>
+    </div>
+
+
+
 </body>
 <script src="chord_analyzer.js"></script>
 <script src="main.js"></script>

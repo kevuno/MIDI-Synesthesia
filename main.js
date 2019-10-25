@@ -11,6 +11,7 @@ document.querySelector('#play').addEventListener('click', function() {
             if (err) {
                  console.log("WebMidi could not be enabled.", err);
             } else {
+                $("#content").show();
                 console.log("WebMidi enabled!");
             }
 
@@ -67,7 +68,9 @@ function note_played(currently_played_notes, note_played){
     // Analyze chord only of there are 3 notes
     if(currently_played_notes.size == 3){
         let chord = get_chord(Array.from(currently_played_notes.values()));
+        $("#chord").html(chord);
         console.log("Chord played!!: " + chord);
+        
     }
     
 }
