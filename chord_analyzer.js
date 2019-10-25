@@ -49,8 +49,10 @@ var note_order_value = {
 function get_chord(currently_played_notes){
     // Sort notes
     let chord_notes = Array.from(currently_played_notes).sort(function(a, b){
-        return note_order_value[a] - note_order_value[a];
+        return note_order_value[a] - note_order_value[b];
     });
+
+    console.log("Sorted notes " + chord_notes);
 
     // TODO: Currently, we use root as the chord, and we determine maj or min from the 3rd interval
     // We should use a more sophisticated library, so that it also takes into account 7ths, 9ths, dim, aug, etc
@@ -63,7 +65,7 @@ function get_chord(currently_played_notes){
     let chord_name = root_note[0];
     if(interval == 3){
         // minor chord, add a "m" next to the root note
-        chord_name += root_note + "m";
+        chord_name += "m";
     }
     return chord_name;
 }
