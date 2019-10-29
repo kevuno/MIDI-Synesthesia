@@ -2,6 +2,21 @@
 // (required by https://goo.gl/7K7WLu)
 var context = new AudioContext();
 
+var chord_to_color = {
+    "C": "#fdcb01",
+    "C#": "#34034b",
+    "D": "#02b3fd",
+    "D#": "#f43705",
+    "E": "#fa6ffc",
+    "F": "#03fc24",
+    "F#": "#035844",
+    "G": "fc0101",
+    "G#": "#0f1869",
+    "A": "#fbf5ad",
+    "A#": "#01f3fc",
+    "B": "#dbbff4"
+}
+
 document.querySelector('#play').addEventListener('click', function() {
     context.resume().then(() => {
         console.log('Playback Started successfully');
@@ -70,6 +85,9 @@ function note_played(currently_played_notes, note_played){
         let chord = get_chord(Array.from(currently_played_notes.values()));
         $("#chord").html(chord);
         console.log("Chord played!!: " + chord);
+
+        // Change color of screen
+        set_canvas_color(chord);
         
     }
     
@@ -78,6 +96,22 @@ function note_played(currently_played_notes, note_played){
 function note_released(currently_played_notes, note_played){
     currently_played_notes.delete(note_played.number);
 }
+
+
+function set_canvas_color(chord_name){
+    let canvas = document.getElementById("canvas");
+    let ctx = canvas.getContext("2d");
+
+    // Remove minor label in case it has it
+    if(chord_name.includes("m")){
+        chord_name = chord_name.slice(0, -1);
+    }
+    ctx.fillStyle = chord_to_color[chord_name];
+    ctx.fillRect(0, 0, 1000, 600);
+
+}
+
+
 
 ////
 /** UTIL FUNCTIONs **/
