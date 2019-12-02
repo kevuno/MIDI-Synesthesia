@@ -6,6 +6,7 @@ const MARGIN = 8
 let trippyMode = false
 const rad15deg = Math.PI / 12
 let smallerSide
+let current_chord_name = "C"
 
 PIXI.GRAPHICS_CURVES.adaptive = true
 PIXI.GRAPHICS_CURVES.maxLength = 5
@@ -14,7 +15,7 @@ const app = new PIXI.Application({
     view: document.getElementById('canvas'),
     antialias: true,
     resolution: window.devicePixelRatio,
-    backgroundColor: 0x0f0f0f,
+    backgroundColor: 0x1f1f1f,
     autoDensity: true
 })
 
@@ -37,6 +38,11 @@ function toggleUI() {
     if (!UI.style.visibility || UI.style.visibility === 'visible') UI.style.visibility = 'hidden'
     else UI.style.visibility = 'visible'
 }
+document.addEventListener('keydown', e => {
+    if (e.keyCode === 32) app.ticker.stop()
+})
+
+// Stop playing if spacebar is pressed
 document.addEventListener('keydown', e => {
     if (e.keyCode === 72) toggleUI()
 })
@@ -168,11 +174,15 @@ function initAudioContext() {
 function draw(lowFrequencyData, highFrequencyData){
     lowAnalyzer.getByteFrequencyData(lowFrequencyData)
     highAnalyzer.getByteFrequencyData(highFrequencyData)
-
-    // Drawing the outter ring
-    graphics.lineStyle(1.5, 0x009688)
     console.log("LOWS:")
     console.log(lowFrequencyData)
+    console.log("HIGHS:")
+    console.log(highFrequencyData)
+
+    // Drawing the outter ring
+    // Get color from current chord
+    let outter_ring_color = get_primary_chord_color()
+    graphics.lineStyle(1.5, outter_ring_color)
     for (let i = 0; i < lowFrequencyData.length; i++) {
         if (lowFrequencyData[i] !== 0) {
             const R = (lowFrequencyData[i] * smallerSide) / 512
@@ -185,9 +195,9 @@ function draw(lowFrequencyData, highFrequencyData){
     }
 
     // Drawing the inner ring
-    console.log("HIGHS:")
-    console.log(highFrequencyData)
-    graphics.lineStyle(1.5, 0xff9800)
+    
+    let inner_ring_color = get_secondary_chord_color();
+    graphics.lineStyle(1.5, inner_ring_color);
     for (let i = 0; i < highFrequencyData.length; i++) {
         if (highFrequencyData[i] !== 0) {
             const R = (highFrequencyData[i] * smallerSide) / 1024
@@ -301,30 +311,66 @@ function note_played(currently_played_notes, note_played){
 
     // Analyze chord only of there are 3 notes
     if(currently_played_notes.size == 3){
-        let chord = get_chord(Array.from(currently_played_notes.values()));
-        $("#chord").html(chord);
-        console.log("Chord played!!: " + chord);
-
-        // Change color of screen
-        set_canvas_color(chord);
+        // Get Chord name and set global variable
+        current_chord_name = get_chord(Array.from(currently_played_notes.values()));
+        
+        // Change color of screen and display name
+        $("#chord").html(current_chord_name);
+        // set_canvas_hex_color(get_primary_chord_color());
         
     }
     
 }
 
+/**
+ * Removes a note from the map of current played notes
+ */
 function note_released(currently_played_notes, note_played){
     currently_played_notes.delete(note_played.number);
 }
 
+/**
+ * Sets the background of the canvas
+ * @param {hex} color Color number
+ */
+function set_canvas_hex_color(color){
+    app.renderer.backgroundColor = color;
+}
 
-function set_canvas_color(chord_name){
+/**
+ * Gets the name of the chord without any modifiers
+ */
+function get_current_chord_name_string(){
     // Remove minor label in case it has it
-    if(chord_name.includes("m")){
-        chord_name = chord_name.slice(0, -1);
+    if(current_chord_name.includes("m")){
+        return current_chord_name.slice(0, -1);
     }
-    app.backgroundColor = chord_to_color[chord_name];
-    app.renderer.backgroundColor = chord_to_color[chord_name];
+    return current_chord_name;
+}
 
+/**
+ * Gets the primary color of the current chord
+ */
+function get_background_chord_color(){
+    return chord_to_color[get_current_chord_name_string()];
+}
+
+/**
+ * Gets the primary color of the current chord
+ */
+function get_primary_chord_color(){
+    let color_hex = chord_to_color[get_current_chord_name_string()];
+    let shaded_color_str = shadeColor(RGB_hex_to_string(color_hex), 10);
+    return RGB_string_to_hex(shaded_color_str);
+}
+
+/**
+ * Gets the primary color of the current chord
+ */
+function get_secondary_chord_color(){
+    let color_hex = chord_to_color[get_current_chord_name_string()] + 0x030303;
+    let shaded_color_str = shadeColor(RGB_hex_to_string(color_hex), 40);
+    return RGB_string_to_hex(shaded_color_str);
 }
 
 
@@ -337,4 +383,50 @@ function set_canvas_color(chord_name){
  */
 function get_webmidi_note_full_name(played_note){
     return played_note.note.name + played_note.note.octave;
+}
+
+/**
+ * Shades the given color by the a given percentage
+ * @param {string} color Given in the format #abcdef
+ * @param {int} percent Amount of change of shade
+ */
+function shadeColor(color, percent) {
+
+    var R = parseInt(color.substring(1,3),16);
+    var G = parseInt(color.substring(3,5),16);
+    var B = parseInt(color.substring(5,7),16);
+
+    R = parseInt(R * (100 + percent) / 100);
+    G = parseInt(G * (100 + percent) / 100);
+    B = parseInt(B * (100 + percent) / 100);
+
+    if (R == 0) R = 32; if (G == 0) G = 32; if (B == 0) B = 32;
+
+    R = (R<255)?R:255;  
+    G = (G<255)?G:255;  
+    B = (B<255)?B:255;  
+
+    var RR = ((R.toString(16).length==1)?"0"+R.toString(16):R.toString(16));
+    var GG = ((G.toString(16).length==1)?"0"+G.toString(16):G.toString(16));
+    var BB = ((B.toString(16).length==1)?"0"+B.toString(16):B.toString(16));
+
+        console.log("#"+RR+GG+BB)
+    return "#"+RR+GG+BB;
+}
+
+
+/**
+ * Converts a hex number into a color hex string
+ * @param {hex} number  in the format "0x123456"
+ */
+function RGB_hex_to_string(hex){
+    return "#" + hex.toString(16);
+}
+
+/**
+ * Converts a color hex string into a hex number
+ * @param {str} string  in the format "#abcdef"
+ */
+function RGB_string_to_hex(str){
+    return parseInt("0x" + str.substring(1))
 }
