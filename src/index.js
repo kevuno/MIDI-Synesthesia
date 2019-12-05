@@ -3,8 +3,61 @@ import demoSongs from './demo-songs/*.mp3'
 import get_chord from './chord_analyzer.js'
 
 
-// First initialize MIDI
-initMIDIDetection()
+// Initiate MIDI controllers 
+EnableMIDInputs();
+
+var selected_midi_input = {
+    "html": null,
+    "id": 0,
+};
+
+function EnableMIDInputs(){
+    // Enable WebMidi
+    WebMidi.enable(function (err) {
+        if (err) {
+             console.log("WebMidi could not be enabled.", err);
+        } else {
+            $("#content").show();
+            console.log("WebMidi enabled!");
+        }
+
+        // List All MIDI inputs
+        WebMidi.inputs.forEach(input => {
+            console.log(`Input is ${input.id}: ${input.name}`)
+            let input_html = `<li class="midi_input" value="${input.id}">${input.name} (${input.id})</li>`;
+            $("#midi_controllers").prepend(input_html);
+        });
+
+        // Initiate MIDI selction handling
+        ListenToChangeOfMIDIInput();
+    });
+}
+
+function ListenToChangeOfMIDIInput(){
+    
+    // Listen to change in MIDI input
+    const midi_inputs = document.getElementsByClassName('midi_input')
+    for (const midi_input_html of midi_inputs) {
+        midi_input_html.addEventListener('pointerdown', () => {
+            changeMIDIInput(midi_input_html)
+        })
+    }
+    
+}
+
+function changeMIDIInput(htmlEl){
+    console.log("Changing midi input")
+    console.log(htmlEl.value)
+    if (selected_midi_input.html === htmlEl) return
+
+    if (selected_midi_input.html) selected_midi_input.html.classList.remove('active')
+    htmlEl.classList.add('active')
+    selected_midi_input.html = htmlEl
+    selected_midi_input.id = htmlEl.value
+
+    // Now Iniialize the Detection
+    initMIDIDetection()
+}
 
 // Now do the audio recognition
 const MARGIN = 8
@@ -261,55 +314,42 @@ var chord_to_color = {
 function initMIDIDetection(){
     // Enable Web MIDI
     console.log("Tryinggg")
-    WebMidi.enable(function (err) {
-        if (err) {
-             console.log("WebMidi could not be enabled.", err);
-        } else {
-            $("#content").show();
-            console.log("WebMidi enabled!");
+
+    
+    // Retrieve input from Midi Keyboard
+    var keyboard = WebMidi.getInputById(selected_midi_input.id);
+    console.log(keyboard.id)
+
+    // Create virtual instrumet to play πnotes
+    // const synth = new Tone.AMSynth().toMaster();
+
+    var currently_played_notes = new Map();
+
+    // Listen for a 'note on'
+    // Note that it is monophonicß, so only one note at a time is played
+    keyboard.addListener('noteon', "all",
+        function (e) {
+            let played_note = get_webmidi_note_full_name(e);
+
+            console.log("Received 'noteon' message " + played_note);
+            // synth.triggerAttack(played_note);
+
+            // Register note played
+            note_played(currently_played_notes, e.note);
         }
-
-        // List All MIDI inputs
-        WebMidi.inputs.forEach(input => {
-            console.log(`Input is ${input.id}: ${input.name}`)
-            let input_html = `<li class="midi_input">${input.name} (${input.id})</li>`;
-            $("#midi_controllers").prepend(input_html);
-        });
+    );
     
-        // Retrieve input from Midi Keyboard
-        var keyboard = WebMidi.getInputByName("MPK249 Port A");
+    // Listen to a 'note off' 
+    keyboard.addListener('noteoff', "all",
+        function (e) {
+            let played_note = get_webmidi_note_full_name(e);
+            console.log("Received 'noteoff' message " + played_note);
+            // synth.triggerRelease();
 
-        // Create virtual instrumet to play πnotes
-        // const synth = new Tone.AMSynth().toMaster();
-
-        var currently_played_notes = new Map();
-    
-        // Listen for a 'note on'
-        // Note that it is monophonicß, so only one note at a time is played
-        keyboard.addListener('noteon', "all",
-            function (e) {
-                let played_note = get_webmidi_note_full_name(e);
-
-                console.log("Received 'noteon' message " + played_note);
-                // synth.triggerAttack(played_note);
-
-                // Register note played
-                note_played(currently_played_notes, e.note);
-            }
-        );
-        
-        // Listen to a 'note off' 
-        keyboard.addListener('noteoff', "all",
-            function (e) {
-                let played_note = get_webmidi_note_full_name(e);
-                console.log("Received 'noteoff' message " + played_note);
-                // synth.triggerRelease();
-
-                // Remove from notes played
-                note_released(currently_played_notes, e.note);
-            }
-        )
-    });
+            // Remove from notes played
+            note_released(currently_played_notes, e.note);
+        }
+    )
 }
 
 function note_played(currently_played_notes, note_played){
