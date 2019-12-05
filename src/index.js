@@ -2,6 +2,11 @@ import * as PIXI from 'pixi.js'
 import demoSongs from './demo-songs/*.mp3'
 import get_chord from './chord_analyzer.js'
 
+
+// First initialize MIDI
+initMIDIDetection()
+
+// Now do the audio recognition
 const MARGIN = 8
 let trippyMode = false
 const rad15deg = Math.PI / 12
@@ -65,6 +70,8 @@ for (const song of songs) {
     })
 }
 
+
+
 document.getElementById('trippy').onclick = e => {
     initAudioContext()
     trippyMode = !trippyMode
@@ -98,7 +105,7 @@ function changeInput(htmlEl, input) {
     activeSongEl = htmlEl
 
     initAudioContext()
-    initMIDIDetection()
+    
 
     if (audioSourceNode !== undefined) audioSourceNode.disconnect()
 
@@ -237,22 +244,23 @@ function drawArc(radius, startAngle, endAngle, spikes = false) {
 /// MIDI additions ///
 
 var chord_to_color = {
-    "C": 0xfdcb01,
-    "C#": 0x34034b,
-    "D": 0x02b3fd,
-    "D#": 0xf43705,
-    "E": 0xfa6ffc,
-    "F": 0x03fc24,
-    "F#": 0x035844,
-    "G": 0xfc0101,
-    "G#": 0x0f1869,
-    "A": 0xfbf5ad,
-    "A#": 0x01f3fc,
-    "B": 0xdbbff4
+    "C": [0xd33338, 0xf4c924, 0x1172b1],
+    "C#": [0xe94417, 0x7fa630, 0x0e49b0],
+    "D": [0xee6627, 0x258264, 0x0d39a1],
+    "D#": [0xf0891f, 0x1172b1, 0x1e2e98],
+    "E": [0xf4c924, 0x0e49b0, 0x64286b],
+    "F": [0x7fa630, 0x0d39a1, 0xd33338],
+    "F#": [0x258264, 0x1e2e98, 0xe94417],
+    "G": [0x1172b1, 0x64286b, 0xee6627],
+    "G#": [0x0e49b0, 0xd33338, 0xf0891f],
+    "A": [0x0d39a1, 0xe94417, 0xf4c924],
+    "A#": [0x1e2e98, 0xee6627, 0x7fa630],
+    "B": [0x64286b, 0xf0891f, 0x258264]
 }
 
 function initMIDIDetection(){
     // Enable Web MIDI
+    console.log("Tryinggg")
     WebMidi.enable(function (err) {
         if (err) {
              console.log("WebMidi could not be enabled.", err);
@@ -264,6 +272,8 @@ function initMIDIDetection(){
         // List All MIDI inputs
         WebMidi.inputs.forEach(input => {
             console.log(`Input is ${input.id}: ${input.name}`)
+            let input_html = `<li class="midi_input">${input.name} (${input.id})</li>`;
+            $("#midi_controllers").prepend(input_html);
         });
     
         // Retrieve input from Midi Keyboard
@@ -316,7 +326,7 @@ function note_played(currently_played_notes, note_played){
         
         // Change color of screen and display name
         $("#chord").html(current_chord_name);
-        // set_canvas_hex_color(get_primary_chord_color());
+        set_canvas_hex_color(get_background_chord_color());
         
     }
     
@@ -352,15 +362,17 @@ function get_current_chord_name_string(){
  * Gets the primary color of the current chord
  */
 function get_background_chord_color(){
-    return chord_to_color[get_current_chord_name_string()];
+    let color_hex = chord_to_color[get_current_chord_name_string()][0];
+    let shaded_color_str = shadeColor(RGB_hex_to_string(color_hex), -90);
+    return RGB_string_to_hex(shaded_color_str);
 }
 
 /**
  * Gets the primary color of the current chord
  */
 function get_primary_chord_color(){
-    let color_hex = chord_to_color[get_current_chord_name_string()];
-    let shaded_color_str = shadeColor(RGB_hex_to_string(color_hex), 10);
+    let color_hex = chord_to_color[get_current_chord_name_string()][1];
+    let shaded_color_str = shadeColor(RGB_hex_to_string(color_hex), 0);
     return RGB_string_to_hex(shaded_color_str);
 }
 
@@ -368,8 +380,8 @@ function get_primary_chord_color(){
  * Gets the primary color of the current chord
  */
 function get_secondary_chord_color(){
-    let color_hex = chord_to_color[get_current_chord_name_string()] + 0x030303;
-    let shaded_color_str = shadeColor(RGB_hex_to_string(color_hex), 40);
+    let color_hex = chord_to_color[get_current_chord_name_string()][2];
+    let shaded_color_str = shadeColor(RGB_hex_to_string(color_hex), 0);
     return RGB_string_to_hex(shaded_color_str);
 }
 
